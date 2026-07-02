@@ -18,6 +18,7 @@ SUPPORTED_M = frozenset({4, 8, 12, 16, 24, 32})
 # using to avoid colliding
 _index_counter = count()
 
+
 class HannoyTransformer(TransformerChecksMixin, TransformerMixin, BaseEstimator):
     # known issue where multiple Database instances silently share the first one's LMDB env
 
@@ -78,7 +79,6 @@ class HannoyTransformer(TransformerChecksMixin, TransformerMixin, BaseEstimator)
         # pre allocating indicies for which points are neighbots
         indices = np.empty((n_samples_transform, n_neighbors), dtype=np.int32)
         distances = np.empty((n_samples_transform, n_neighbors), dtype=np.float32)
-
 
         if X is None:
             # by_item path
