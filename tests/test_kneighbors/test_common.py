@@ -44,7 +44,8 @@ PER_ESTIMATOR_XFAIL_CHECKS = {
     ),
     NMSlibTransformer: dict(check_estimators_pickle="Cannot pickle NMSLib index"),
     HannoyTransformer: dict(
-        check_estimators_pickle="Cannot pickle hannoy Reader (Rust unsendable)"),
+        check_estimators_pickle="Cannot pickle hannoy Reader (Rust unsendable)"
+    ),
 }
 
 
