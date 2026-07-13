@@ -20,7 +20,29 @@ _index_counter = count()
 
 
 class HannoyTransformer(TransformerChecksMixin, TransformerMixin, BaseEstimator):
-    # known issue where multiple Database instances silently share the first one's LMDB env
+    """Wrap :class:`hannoy.Database` as a scikit-learn ``KNeighborsTransformer``.
+
+    Notes
+    -----
+    Known issue where multiple Database instances silently share the first one's LMDB env.
+    """
+    n_neighbors: int
+    """Number of neighbors to return."""
+
+    metric: Metric | None
+    """Distance metric. ``None`` means euclidean."""
+
+    path: str | None
+    """LMDB directory. ``None`` creates a temp dir."""
+
+    m: int
+    """Edges per node in the HNSW graph. One of {4, 8, 12, 16, 24, 32}."""
+
+    ef_construction: int
+    """Candidate list size when building (higher = better graph, slower)."""
+
+    ef_search: int
+    """Candidate list size when searching (higher = better recall, slower)."""
 
     def __init__(
         self,
@@ -101,6 +123,7 @@ class HannoyTransformer(TransformerChecksMixin, TransformerMixin, BaseEstimator)
 
         metric = Metric.EUCLIDEAN if self.metric is None else self.metric
         if metric == Metric.EUCLIDEAN:
+            # hannoy's EUCLIDEAN returns squared distance; sqrt to get the true distance
             np.sqrt(distances, out=distances)
 
         indptr = np.arange(0, n_samples_transform * n_neighbors + 1, n_neighbors)

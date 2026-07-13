@@ -20,6 +20,10 @@ try:
     from sklearn_ann.kneighbors.pynndescent import PyNNDescentTransformer
 except ImportError:
     PyNNDescentTransformer = "PyNNDescentTransformer"
+try:
+    from sklearn_ann.kneighbors.hannoy import HannoyTransformer
+except ImportError:
+    HannoyTransformer = "HannoyTransformer"
 from sklearn_ann.kneighbors.sklearn import BallTreeTransformer, KDTreeTransformer
 
 ESTIMATORS = [
@@ -27,6 +31,7 @@ ESTIMATORS = [
     pytest.param(FAISSTransformer, marks=[needs.faiss()]),
     pytest.param(NMSlibTransformer, marks=[needs.nmslib()]),
     pytest.param(PyNNDescentTransformer, marks=[needs.pynndescent()]),
+    pytest.param(HannoyTransformer, marks=[needs.hannoy()]),
     pytest.param(BallTreeTransformer),
     pytest.param(KDTreeTransformer),
 ]
@@ -38,6 +43,8 @@ PER_ESTIMATOR_XFAIL_CHECKS = {
         check_methods_subset_invariance="Unable to reset FAISS internal RNG",
     ),
     NMSlibTransformer: dict(check_estimators_pickle="Cannot pickle NMSLib index"),
+    HannoyTransformer: dict(
+        check_estimators_pickle="Cannot pickle hannoy Reader (Rust unsendable)"),
 }
 
 
