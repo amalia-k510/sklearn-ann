@@ -26,6 +26,7 @@ class HannoyTransformer(TransformerChecksMixin, TransformerMixin, BaseEstimator)
     -----
     Known issue where multiple Database instances silently share the first one's LMDB env.
     """
+
     n_neighbors: int
     """Number of neighbors to return."""
 

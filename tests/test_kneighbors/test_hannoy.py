@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from sklearn_ann.test_utils import assert_row_close, needs
 
