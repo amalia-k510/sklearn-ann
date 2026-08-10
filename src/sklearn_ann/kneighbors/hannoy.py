@@ -1,6 +1,9 @@
 # hannoy needs a filesystem path (LMDB-backed)
+from __future__ import annotations
+
 import tempfile
 from itertools import count
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 from hannoy import Database, Metric
@@ -10,6 +13,11 @@ from sklearn.utils import Tags, TargetTags, TransformerTags
 from sklearn.utils.validation import validate_data
 
 from ..utils import TransformerChecksMixin
+
+if TYPE_CHECKING:
+    from typing import Self
+
+    from numpy.typing import NDArray
 
 # guards against panic in Rust, i.e. unrecoverable errors
 SUPPORTED_M = frozenset({4, 8, 12, 16, 24, 32})
@@ -53,14 +61,14 @@ class HannoyTransformer(TransformerChecksMixin, TransformerMixin, BaseEstimator)
 
     def __init__(
         self,
-        n_neighbors=5,
+        n_neighbors: int = 5,
         *,
-        metric=None,
-        path=None,
-        m=16,
-        ef_construction=96,
-        ef_search=200,
-    ):
+        metric: Metric | None = None,
+        path: str | None = None,
+        m: int = 16,
+        ef_construction: int = 96,
+        ef_search: int = 200,
+    ) -> None:
         self.n_neighbors = n_neighbors
         self.metric = metric
         # LMDB directory for the index; if None = auto-create a temp dir
@@ -69,8 +77,10 @@ class HannoyTransformer(TransformerChecksMixin, TransformerMixin, BaseEstimator)
         self.ef_construction = ef_construction
         self.ef_search = ef_search
 
-    def fit(self, X, y=None):
-        X = validate_data(self, X, dtype=np.float32, order="C")
+    def fit(self, X: NDArray[np.number], y: None = None) -> Self:
+        X = cast(
+            "NDArray[np.float32]", validate_data(self, X, dtype=np.float32, order="C")
+        )
         # guard to avoid panic abort
         if self.m not in SUPPORTED_M:
             raise ValueError(
@@ -93,17 +103,25 @@ class HannoyTransformer(TransformerChecksMixin, TransformerMixin, BaseEstimator)
         self.hannoy_reader_ = self.hannoy_db_.reader(index=self._index_)
         return self
 
-    def transform(self, X):
+    def transform(self, X: NDArray[np.number]) -> csr_matrix[np.float32]:
         # verify that fit was called and + that X has the right number of features
-        X = self._transform_checks(X, "hannoy_reader_", dtype=np.float32, order="C")
+        X = cast(
+            "NDArray[np.float32]",
+            self._transform_checks(X, "hannoy_reader_", dtype=np.float32, order="C"),
+        )
         return self._transform(X)
 
-    def fit_transform(self, X, y=None):
+    def fit_transform(  # type: ignore[override]
+        self, X: NDArray[np.number], y: None = None
+    ) -> csr_matrix[np.float32]:
         self.fit(X)
-        X = validate_data(self, X, dtype=np.float32, order="C", reset=False)
+        X = cast(
+            "NDArray[np.float32]",
+            validate_data(self, X, dtype=np.float32, order="C", reset=False),
+        )
         return self._transform(X)
 
-    def _transform(self, X):
+    def _transform(self, X: NDArray[np.float32]) -> csr_matrix[np.float32]:
         # how many points
         n_samples_transform = X.shape[0]
         n_neighbors = self.n_neighbors + 1
@@ -130,5 +148,5 @@ class HannoyTransformer(TransformerChecksMixin, TransformerMixin, BaseEstimator)
         return Tags(
             estimator_type="transformer",
             target_tags=TargetTags(required=False),
-            transformer_tags=TransformerTags(preserves_dtype=[np.float32]),
+            transformer_tags=TransformerTags(preserves_dtype=["float32"]),
         )
