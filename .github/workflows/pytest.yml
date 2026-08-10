@@ -27,7 +27,7 @@ jobs:
           cache: pip
 
       - name: Install project and dependencies
-        run: pip install .[annlibs,tests]
+        run: pip install .[annlibs,tests] 'hannoy @ git+https://github.com/nnethercott/hannoy.git'
 
       - name: Run test suite
         run: pytest -v --color=yes
