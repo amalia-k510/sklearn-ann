@@ -24,8 +24,13 @@ class HannoyTransformer(TransformerChecksMixin, TransformerMixin, BaseEstimator)
 
     Notes
     -----
-    Known issue where multiple Database instances silently share the first one's LMDB 
-    env.
+    Known issue is that hannoy only creates one LMDB env per processor.
+    Once HannoyTransfor sets the path; every other case of transformer
+    will reuse this same env.
+
+    It is harmless as it is being handled in a way that each transformer
+    gets its own index, so no overwriting is taking place. For real isolation,
+    run them in separate processes.
     """
 
     n_neighbors: int
@@ -65,7 +70,7 @@ class HannoyTransformer(TransformerChecksMixin, TransformerMixin, BaseEstimator)
         self.ef_search = ef_search
 
     def fit(self, X, y=None):
-        X = validate_data(self, X, dtype=np.float32)
+        X = validate_data(self, X, dtype=np.float32, order="C")
         # guard to avoid panic abort
         if self.m not in SUPPORTED_M:
             raise ValueError(
@@ -90,38 +95,24 @@ class HannoyTransformer(TransformerChecksMixin, TransformerMixin, BaseEstimator)
 
     def transform(self, X):
         # verify that fit was called and + that X has the right number of features
-        X = self._transform_checks(X, "hannoy_reader_", dtype=np.float32)
+        X = self._transform_checks(X, "hannoy_reader_", dtype=np.float32, order="C")
         return self._transform(X)
 
     def fit_transform(self, X, y=None):
-        return self.fit(X)._transform(X=None)
+        self.fit(X)
+        X = validate_data(self, X, dtype=np.float32, order="C", reset=False)
+        return self._transform(X)
 
     def _transform(self, X):
         # how many points
-        n_samples_transform = self.n_samples_fit_ if X is None else X.shape[0]
+        n_samples_transform = X.shape[0]
         n_neighbors = self.n_neighbors + 1
         # pre allocating indicies for which points are neighbots
-        indices = np.empty((n_samples_transform, n_neighbors), dtype=np.int32)
+        indices = np.empty((n_samples_transform, n_neighbors), dtype=np.uint32)
         distances = np.empty((n_samples_transform, n_neighbors), dtype=np.float32)
-
-        if X is None:
-            # by_item path
-            for i in range(n_samples_transform):
-                neighbours = self.hannoy_reader_.by_item(
-                    i, n=self.n_neighbors, ef_search=self.ef_search
-                )
-                indices[i, 0] = i
-                distances[i, 0] = 0.0
-                indices[i, 1:] = [j for j, _ in neighbours]
-                distances[i, 1:] = [d for _, d in neighbours]
-        else:
-            # by_vec path
-            for i, x in enumerate(X):
-                neighbours = self.hannoy_reader_.by_vec(
-                    x.tolist(), n=n_neighbors, ef_search=self.ef_search
-                )
-                indices[i] = [j for j, _ in neighbours]
-                distances[i] = [d for _, d in neighbours]
+        self.hannoy_reader_.by_array(
+            X, n=n_neighbors, ef_search=self.ef_search, out=(indices, distances)
+        )
 
         metric = Metric.EUCLIDEAN if self.metric is None else self.metric
         if metric == Metric.EUCLIDEAN:

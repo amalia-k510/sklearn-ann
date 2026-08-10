@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from sklearn_ann.test_utils import assert_row_close, needs
 
@@ -29,8 +30,8 @@ def test_cosine(random_small, random_small_pdists):
 
 @needs.hannoy
 def test_transform_matches_fit_transform(random_small):
-    # fit_transform uses the by_item path; fit().transform() uses by_vec
-    # comparing the two paths
+    # both entry points go through by_array on the same vectors
+    # they should agree exactly;
     trans = HannoyTransformer(metric=Metric.EUCLIDEAN)
     by_item = trans.fit_transform(random_small)
     by_vec = trans.fit(random_small).transform(random_small)
